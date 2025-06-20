@@ -57,6 +57,10 @@
       margin-top: 5px;
       color: #8f8;
     }
+    .timestamp {
+      font-size: 12px;
+      color: #999;
+    }
   </style>
 </head>
 <body>
@@ -74,15 +78,18 @@
     const countdownEl = document.getElementById('countdown');
     let interval = 30;
     let urls = JSON.parse(localStorage.getItem('pingUrls') || '[]');
+    let timestamps = JSON.parse(localStorage.getItem('pingTimestamps') || '{}');
 
     function saveUrls() {
       localStorage.setItem('pingUrls', JSON.stringify(urls));
+      localStorage.setItem('pingTimestamps', JSON.stringify(timestamps));
     }
 
-    function addUrl() {
-      const url = urlInput.value.trim();
-      if (url && !urls.includes(url)) {
-        urls.push(url);
+    function addUrl(url = null) {
+      const value = url || urlInput.value.trim();
+      if (value && !urls.includes(value)) {
+        urls.push(value);
+        timestamps[value] = new Date().toLocaleString();
         saveUrls();
         renderUrls();
         urlInput.value = '';
@@ -92,7 +99,10 @@
     function updateUrl(index) {
       const newUrl = prompt("Edit URL:", urls[index]);
       if (newUrl) {
+        const oldUrl = urls[index];
         urls[index] = newUrl.trim();
+        timestamps[newUrl.trim()] = new Date().toLocaleString();
+        delete timestamps[oldUrl];
         saveUrls();
         renderUrls();
       }
@@ -105,6 +115,9 @@
         const responseEl = document.createElement('div');
         responseEl.className = 'response';
         responseEl.id = `response-${index}`;
+        const tsEl = document.createElement('div');
+        tsEl.className = 'timestamp';
+        tsEl.textContent = 'Saved: ' + (timestamps[url] || 'N/A');
 
         li.innerHTML = `<div>${url}</div>`;
         const btnGroup = document.createElement('div');
@@ -116,13 +129,16 @@
         `;
 
         li.appendChild(btnGroup);
+        li.appendChild(tsEl);
         li.appendChild(responseEl);
         urlListEl.appendChild(li);
       });
     }
 
     function removeUrl(index) {
+      const url = urls[index];
       urls.splice(index, 1);
+      delete timestamps[url];
       saveUrls();
       renderUrls();
     }
@@ -155,6 +171,23 @@
       }, 1000);
     }
 
+    // Basic API support to POST URLs to the dashboard
+    window.addEventListener('message', (event) => {
+      if (event.data && event.data.type === 'addUrls' && Array.isArray(event.data.urls)) {
+        event.data.urls.forEach(u => addUrl(u));
+      }
+    });
+
+    // Load from ?url=https://abc.com param
+    function loadFromQueryParam() {
+      const params = new URLSearchParams(window.location.search);
+      const newUrl = params.get('url');
+      if (newUrl) {
+        addUrl(newUrl);
+      }
+    }
+
+    loadFromQueryParam();
     renderUrls();
     startCountdown();
   </script>
