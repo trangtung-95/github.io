@@ -20,7 +20,7 @@
       border-radius: 8px;
       box-shadow: 0 0 20px rgba(0,0,0,0.5);
     }
-    input, button {
+    input, button, select {
       padding: 10px;
       margin: 5px 0;
       width: 100%;
@@ -61,13 +61,30 @@
       font-size: 12px;
       color: #999;
     }
+    #loginContainer {
+      max-width: 400px;
+      margin: 100px auto;
+      padding: 30px;
+      background: #2d2d2d;
+      border-radius: 8px;
+      box-shadow: 0 0 20px rgba(0,0,0,0.5);
+    }
   </style>
 </head>
 <body>
-  <div class="container">
-    <h1>Ping Dashboard</h1>
+  <div id="loginContainer">
+    <h2>Enter Password</h2>
+    <input type="password" id="passwordInput" placeholder="Password...">
+    <button onclick="checkPassword()">Login</button>
+    <p id="loginMsg"></p>
+  </div>
+
+  <div class="container" id="appContainer" style="display:none;">
+    <h1>Ping Dashboard (<span id="urlCount">0</span> URLs)</h1>
     <input id="urlInput" type="text" placeholder="Enter site URL (e.g. https://example.com)" />
     <button onclick="addUrl()">Save URL</button>
+    <label for="intervalInput">Ping Interval (seconds)</label>
+    <input id="intervalInput" type="number" min="5" value="30" onchange="updateInterval()">
     <p class="countdown">Next ping in: <span id="countdown">30</span>s</p>
     <ul id="urlList"></ul>
   </div>
@@ -76,9 +93,24 @@
     const urlInput = document.getElementById('urlInput');
     const urlListEl = document.getElementById('urlList');
     const countdownEl = document.getElementById('countdown');
-    let interval = 30;
+    const urlCountEl = document.getElementById('urlCount');
+    const intervalInput = document.getElementById('intervalInput');
+    let interval = parseInt(intervalInput.value);
     let urls = JSON.parse(localStorage.getItem('pingUrls') || '[]');
     let timestamps = JSON.parse(localStorage.getItem('pingTimestamps') || '{}');
+    let timer;
+
+    function checkPassword() {
+      const input = document.getElementById('passwordInput').value;
+      const msg = document.getElementById('loginMsg');
+      if (input === 'admin123') {
+        document.getElementById('loginContainer').style.display = 'none';
+        document.getElementById('appContainer').style.display = 'block';
+      } else {
+        msg.textContent = 'Incorrect password';
+        msg.style.color = 'red';
+      }
+    }
 
     function saveUrls() {
       localStorage.setItem('pingUrls', JSON.stringify(urls));
@@ -133,6 +165,7 @@
         li.appendChild(responseEl);
         urlListEl.appendChild(li);
       });
+      urlCountEl.textContent = urls.length;
     }
 
     function removeUrl(index) {
@@ -161,7 +194,7 @@
     function startCountdown() {
       let timeLeft = interval;
       countdownEl.textContent = timeLeft;
-      setInterval(() => {
+      timer = setInterval(() => {
         timeLeft--;
         countdownEl.textContent = timeLeft;
         if (timeLeft === 0) {
@@ -171,14 +204,18 @@
       }, 1000);
     }
 
-    // Basic API support to POST URLs to the dashboard
+    function updateInterval() {
+      interval = parseInt(intervalInput.value);
+      clearInterval(timer);
+      startCountdown();
+    }
+
     window.addEventListener('message', (event) => {
       if (event.data && event.data.type === 'addUrls' && Array.isArray(event.data.urls)) {
         event.data.urls.forEach(u => addUrl(u));
       }
     });
 
-    // Load from ?url=https://abc.com param
     function loadFromQueryParam() {
       const params = new URLSearchParams(window.location.search);
       const newUrl = params.get('url');
@@ -189,7 +226,6 @@
 
     loadFromQueryParam();
     renderUrls();
-    startCountdown();
   </script>
 </body>
 </html>
