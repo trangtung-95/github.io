@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Auto Ping Dashboard</title>
+  <style>
+    body { font-family: sans-serif; background: #f9f9f9; padding: 20px; }
+    h1 { color: #333; }
+    .container { max-width: 600px; margin: 0 auto; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 0 10px rgba(0,0,0,0.1); }
+    input, button { padding: 10px; margin: 5px 0; width: 100%; }
+    ul { list-style: none; padding: 0; }
+    li { background: #f0f0f0; margin-bottom: 5px; padding: 10px; border-radius: 4px; display: flex; justify-content: space-between; }
+    .countdown { font-size: 14px; color: #888; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Ping Dashboard</h1>
+    <input id="urlInput" type="text" placeholder="Enter site URL (e.g. https://example.com)" />
+    <button onclick="addUrl()">Save URL</button>
+    <p class="countdown">Next ping in: <span id="countdown">30</span>s</p>
+    <ul id="urlList"></ul>
+  </div>
+
+  <script>
+    const urlInput = document.getElementById('urlInput');
+    const urlListEl = document.getElementById('urlList');
+    const countdownEl = document.getElementById('countdown');
+    let interval = 30;
+    let urls = JSON.parse(localStorage.getItem('pingUrls') || '[]');
+
+    function saveUrls() {
+      localStorage.setItem('pingUrls', JSON.stringify(urls));
+    }
+
+    function addUrl() {
+      const url = urlInput.value.trim();
+      if (url && !urls.includes(url)) {
+        urls.push(url);
+        saveUrls();
+        renderUrls();
+        urlInput.value = '';
+      }
+    }
+
+    function renderUrls() {
+      urlListEl.innerHTML = '';
+      urls.forEach((url, index) => {
+        const li = document.createElement('li');
+        li.innerHTML = `${url} <button onclick="removeUrl(${index})">Remove</button>`;
+        urlListEl.appendChild(li);
+      });
+    }
+
+    function removeUrl(index) {
+      urls.splice(index, 1);
+      saveUrls();
+      renderUrls();
+    }
+
+    function pingUrls() {
+      urls.forEach(url => {
+        fetch(url, { mode: 'no-cors' })
+          .then(() => console.log(`Pinged ${url}`))
+          .catch(() => console.warn(`Failed to ping ${url}`));
+      });
+    }
+
+    function startCountdown() {
+      let timeLeft = interval;
+      countdownEl.textContent = timeLeft;
+      setInterval(() => {
+        timeLeft--;
+        countdownEl.textContent = timeLeft;
+        if (timeLeft === 0) {
+          pingUrls();
+          timeLeft = interval;
+        }
+      }, 1000);
+    }
+
+    renderUrls();
+    startCountdown();
+  </script>
+</body>
+</html>
