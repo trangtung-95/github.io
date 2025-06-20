@@ -5,13 +5,58 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Auto Ping Dashboard</title>
   <style>
-    body { font-family: sans-serif; background: #f9f9f9; padding: 20px; }
-    h1 { color: #333; }
-    .container { max-width: 600px; margin: 0 auto; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 0 10px rgba(0,0,0,0.1); }
-    input, button { padding: 10px; margin: 5px 0; width: 100%; }
+    body {
+      font-family: sans-serif;
+      background: #1e1e1e;
+      color: #f1f1f1;
+      padding: 20px;
+    }
+    h1 { color: #f1f1f1; }
+    .container {
+      max-width: 700px;
+      margin: 0 auto;
+      background: #2d2d2d;
+      padding: 20px;
+      border-radius: 8px;
+      box-shadow: 0 0 20px rgba(0,0,0,0.5);
+    }
+    input, button {
+      padding: 10px;
+      margin: 5px 0;
+      width: 100%;
+      border: none;
+      border-radius: 5px;
+    }
+    input {
+      background: #444;
+      color: #fff;
+    }
+    button {
+      background: #007bff;
+      color: white;
+      cursor: pointer;
+    }
     ul { list-style: none; padding: 0; }
-    li { background: #f0f0f0; margin-bottom: 5px; padding: 10px; border-radius: 4px; display: flex; justify-content: space-between; }
-    .countdown { font-size: 14px; color: #888; }
+    li {
+      background: #3a3a3a;
+      margin-bottom: 5px;
+      padding: 10px;
+      border-radius: 4px;
+    }
+    .countdown {
+      font-size: 14px;
+      color: #bbb;
+    }
+    .btn-group {
+      display: flex;
+      gap: 10px;
+      margin-top: 5px;
+    }
+    .response {
+      font-size: 13px;
+      margin-top: 5px;
+      color: #8f8;
+    }
   </style>
 </head>
 <body>
@@ -44,11 +89,34 @@
       }
     }
 
+    function updateUrl(index) {
+      const newUrl = prompt("Edit URL:", urls[index]);
+      if (newUrl) {
+        urls[index] = newUrl.trim();
+        saveUrls();
+        renderUrls();
+      }
+    }
+
     function renderUrls() {
       urlListEl.innerHTML = '';
       urls.forEach((url, index) => {
         const li = document.createElement('li');
-        li.innerHTML = `${url} <button onclick="removeUrl(${index})">Remove</button>`;
+        const responseEl = document.createElement('div');
+        responseEl.className = 'response';
+        responseEl.id = `response-${index}`;
+
+        li.innerHTML = `<div>${url}</div>`;
+        const btnGroup = document.createElement('div');
+        btnGroup.className = 'btn-group';
+        btnGroup.innerHTML = `
+          <button onclick="pingUrl(${index})">Ping Now</button>
+          <button onclick="updateUrl(${index})">Edit</button>
+          <button onclick="removeUrl(${index})">Remove</button>
+        `;
+
+        li.appendChild(btnGroup);
+        li.appendChild(responseEl);
         urlListEl.appendChild(li);
       });
     }
@@ -59,12 +127,19 @@
       renderUrls();
     }
 
+    function pingUrl(index) {
+      const url = urls[index];
+      fetch(url, { mode: 'no-cors' })
+        .then(() => {
+          document.getElementById(`response-${index}`).textContent = 'Ping successful (no-cors, assumed OK)';
+        })
+        .catch(() => {
+          document.getElementById(`response-${index}`).textContent = 'Ping failed';
+        });
+    }
+
     function pingUrls() {
-      urls.forEach(url => {
-        fetch(url, { mode: 'no-cors' })
-          .then(() => console.log(`Pinged ${url}`))
-          .catch(() => console.warn(`Failed to ping ${url}`));
-      });
+      urls.forEach((_, index) => pingUrl(index));
     }
 
     function startCountdown() {
